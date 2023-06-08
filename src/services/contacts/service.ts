@@ -1,25 +1,48 @@
 import { EVENT_LIST_CONTACTS } from './constants'
-import { INetworkInfo, ILocalDataSource, IRemoteDataSource, IEventManager } from './types'
+import {
+  INetworkInfo,
+  ILocalDataSource,
+  IRemoteDataSource,
+  IEventManager,
+  IContact,
+  IContactService,
+} from './types'
 
-export class ContactService {
-
+export class ContactService implements IContactService {
   constructor(
     private localDataSource: ILocalDataSource,
     private remoteDataSource: IRemoteDataSource,
     private eventManager: IEventManager,
     private networkInfo: INetworkInfo
-  ) { }
+  ) {}
 
-  getCacheData() {
+  private getCacheData() {
     return this.localDataSource.read()
   }
 
-  listContacts() {
+  private mergeDataSources(remoteDSItems: IContact[]) {
+    const localDSItems = this.getCacheData()
+    const array = [...remoteDSItems, ...localDSItems]
+
+    const uniqueItems = new Map<string, IContact>()
+
+    array.forEach((item) => {
+      uniqueItems.set(item.id, item)
+    })
+
+    this.localDataSource.save(Array.from(uniqueItems.values()))
+  }
+
+  private listContacts() {
+    if (!this.networkInfo.isConnected()) {
+      this.eventManager.emit(EVENT_LIST_CONTACTS, this.getCacheData())
+      return
+    }
     this.remoteDataSource
       .list()
-      .then((networkContacts: any[]) => {
+      .then((networkContacts: IContact[]) => {
         if (networkContacts.length) {
-          this.localDataSource.save(networkContacts)
+          this.mergeDataSources(networkContacts)
         }
         this.eventManager.emit(EVENT_LIST_CONTACTS, this.getCacheData())
       })
@@ -36,5 +59,21 @@ export class ContactService {
     this.eventManager.on('updateContacts', handler)
     this.listContacts()
   }
-}
 
+  async create(newContact: IContact): Promise<IContact> {
+    // TODO: id must be created here, not passed inside payload
+    if (!this.networkInfo.isConnected()) {
+      this.mergeDataSources([newContact])
+      return newContact
+    }
+
+    const result = await this.remoteDataSource.create(newContact)
+
+    this.mergeDataSources([result])
+    return result
+  }
+
+  detach(): void {
+    console.log()
+  }
+}

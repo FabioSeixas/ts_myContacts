@@ -1,11 +1,10 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 import { IContact, INetworkInfo } from './types'
 import { makeContactService } from '.'
 
 const makeStubLocalDataSource = (initalData?: IContact[]) => {
-
   const source = {
-    contacts: initalData ?? [] as IContact[]
+    contacts: initalData ?? ([] as IContact[]),
   }
 
   return {
@@ -13,88 +12,322 @@ const makeStubLocalDataSource = (initalData?: IContact[]) => {
       return source.contacts
     },
     save(_contactsList: IContact[]) {
-      _contactsList.forEach((item) => {
-        source.contacts.push(item)
-      })
+      source.contacts = _contactsList
     },
   }
 }
 
-const contactList = [
-  { name: 'Well' },
-  { name: 'Tom' },
-  { name: "Raquel" },
-  { name: 'Fabio' }
+const remoteContactList = [
+  { name: 'Well', id: '1' },
+  { name: 'Tom', id: '2' },
+  { name: 'Raquel', id: '3' },
+  { name: 'Fabio', id: '4' },
 ]
 
-const makeStubRemoteDataSource = () => {
+const makeStubRemoteDataSource = (error?: boolean) => {
   return {
-    create: async function() { 
-      return contactList[0]
+    create: async function (newContact: { id: string; name: string }) {
+      if (error) {
+        throw new Error('somethingWentWrong')
+      }
+      return newContact
     },
-    update: async function() { 
-      return contactList[0]
+    update: async function () {
+      return remoteContactList[0]
     },
-    list: async function() {
-      return contactList
+    list: async function () {
+      return remoteContactList
     },
   }
 }
 
-const makeStubNetworkInfo = (): INetworkInfo => {
+const makeStubNetworkInfo = (isConnected = true): INetworkInfo => {
   return {
-    isConnected: function() {
-      return true
+    isConnected: function () {
+      return isConnected
     },
   }
 }
 
+describe('Contacts Service Tests', () => {
+  describe('Observable', () => {
+    test('should accept N new listeners', async () => {
+      // arrange
+      // act
+      // assert
+    })
+    test('should notify listeners when update happens', async () => {
+      // arrange
+      // act
+      // assert
+    })
+    test('should detach listeners', async () => {
+      // arrange
+      // act
+      // assert
+    })
+    test('should not notify a detached listener', async () => {
+      // arrange
+      // act
+      // assert
+    })
+  })
+  describe('Offline', () => {
+    describe('Creation', () => {
+      test('should not touch remote source on offline creation', async () => {
+        // arrange
+        const localDS = makeStubLocalDataSource()
+        const remoteDS = makeStubRemoteDataSource()
+        const networkInfo = makeStubNetworkInfo(false)
 
-describe('Online', () => {
-  test('should list contacts', async () => {
-    const localDS = makeStubLocalDataSource()
-    const remoteDS = makeStubRemoteDataSource()
-    const networkInfo = makeStubNetworkInfo()
+        const spyRDS = vi.spyOn(remoteDS, 'create')
+        const spyLDS = vi.spyOn(localDS, 'save')
 
-    const s = makeContactService(localDS, remoteDS, networkInfo)
+        const s = makeContactService(localDS, remoteDS, networkInfo)
 
-    s.attach(() => {})
+        // act
+        s.create({
+          id: '1345',
+          name: 'user test',
+        })
 
-    await new Promise<void>((res) => setTimeout(() => res(), 1))
+        await new Promise<void>((res) => setTimeout(() => res(), 1))
 
-    expect(localDS.read()).toEqual(
-      expect.arrayContaining(
-        contactList
-      )
-    )
+        // assert
+        expect(spyLDS).toHaveBeenCalled()
+        expect(spyRDS).not.toHaveBeenCalled()
+      })
+      test('should add new item to local data source without touching the existing items', async () => {
+        // arrange
+        const existentDataOnCache = [
+          { name: 'user 1', id: '1' },
+          { name: 'user 2', id: '2' },
+        ]
+        const localDS = makeStubLocalDataSource(existentDataOnCache)
+        const remoteDS = makeStubRemoteDataSource()
+        const networkInfo = makeStubNetworkInfo(false)
+
+        const s = makeContactService(localDS, remoteDS, networkInfo)
+
+        // act
+        s.create({
+          id: '1345',
+          name: 'user test',
+        })
+
+        await new Promise<void>((res) => setTimeout(() => res(), 1))
+        // assert
+        expect(
+          localDS.read().find((contact) => contact.id == '1345')
+        ).toBeTruthy()
+        expect(localDS.read().find((contact) => contact.id == '1')).toBeTruthy()
+        expect(localDS.read().find((contact) => contact.id == '2')).toBeTruthy()
+      })
+    })
+    describe('Listing', () => {
+      test('should not touch remote', async () => {
+        const localDS = makeStubLocalDataSource()
+        const remoteDS = makeStubRemoteDataSource()
+        const networkInfo = makeStubNetworkInfo(false)
+
+        const spy = vi.spyOn(remoteDS, 'list')
+
+        const s = makeContactService(localDS, remoteDS, networkInfo)
+
+        s.attach(() => {})
+
+        await new Promise<void>((res) => setTimeout(() => res(), 1))
+
+        expect(spy).not.toHaveBeenCalled()
+      })
+
+      test('should not update cache with remote data', async () => {
+        const localDS = makeStubLocalDataSource()
+        const remoteDS = makeStubRemoteDataSource()
+        const networkInfo = makeStubNetworkInfo(false)
+
+        const s = makeContactService(localDS, remoteDS, networkInfo)
+
+        s.attach(() => {})
+
+        await new Promise<void>((res) => setTimeout(() => res(), 1))
+
+        expect(localDS.read().length).toBe(0)
+      })
+
+      test('should notify listeners with data from local data source', async () => {
+        const existentDataOnCache = [
+          { name: 'user 1', id: '1' },
+          { name: 'user 2', id: '2' },
+        ]
+        const localDS = makeStubLocalDataSource(existentDataOnCache)
+        const remoteDS = makeStubRemoteDataSource()
+        const networkInfo = makeStubNetworkInfo(false)
+
+        const s = makeContactService(localDS, remoteDS, networkInfo)
+
+        s.attach(() => {})
+
+        await new Promise<void>((res) => setTimeout(() => res(), 1))
+
+        const dataFromCache = localDS.read()
+
+        expect(dataFromCache.length).toBe(2)
+        expect(dataFromCache).toEqual(
+          expect.arrayContaining(existentDataOnCache)
+        )
+      })
+    })
   })
 
-  test('should update local with remote', async () => {
-    const existingContactList = [
-      { name: "Lucas" },
-      { name: 'Renata' }
-    ]
+  describe('Online', () => {
+    describe('Creation', () => {
+      test('should POST to remote source', async () => {
+        // arrange
+        const localDS = makeStubLocalDataSource()
+        const remoteDS = makeStubRemoteDataSource()
+        const networkInfo = makeStubNetworkInfo(true)
 
-    const localDS = makeStubLocalDataSource(existingContactList)
-    const remoteDS = makeStubRemoteDataSource()
-    const networkInfo = makeStubNetworkInfo()
+        const spyRDS = vi.spyOn(remoteDS, 'create')
+        const spyLDS = vi.spyOn(localDS, 'save')
 
-    const s = makeContactService(localDS, remoteDS, networkInfo)
+        const s = makeContactService(localDS, remoteDS, networkInfo)
 
-    s.attach(() => {})
+        // act
+        s.create({
+          id: '1345',
+          name: 'user test',
+        })
 
-    await new Promise<void>((res) => setTimeout(() => res(), 1))
+        await new Promise<void>((res) => setTimeout(() => res(), 1))
 
-    expect(localDS.read()).toEqual(
-      expect.arrayContaining(
-        [...contactList, ...existingContactList]
+        // assert
+        expect(spyLDS).toHaveBeenCalled()
+        expect(spyRDS).toHaveBeenCalled()
+      })
+      test('should update local data source if POST returns SUCCESS', async () => {
+        // arrange
+        const existentDataOnCache = [
+          { name: 'user 1', id: '1' },
+          { name: 'user 2', id: '2' },
+        ]
+
+        const localDS = makeStubLocalDataSource(existentDataOnCache)
+        const remoteDS = makeStubRemoteDataSource()
+        const networkInfo = makeStubNetworkInfo(true)
+
+        const s = makeContactService(localDS, remoteDS, networkInfo)
+
+        // act
+        s.create({
+          id: '1345',
+          name: 'user test',
+        })
+
+        await new Promise<void>((res) => setTimeout(() => res(), 1))
+
+        // assert
+        expect(localDS.read().length).toBe(3)
+      })
+      test('should add new item to local data source even if this last one is empty', async () => {
+        // arrange
+        const localDS = makeStubLocalDataSource([])
+        const remoteDS = makeStubRemoteDataSource()
+        const networkInfo = makeStubNetworkInfo(true)
+
+        const s = makeContactService(localDS, remoteDS, networkInfo)
+
+        // act
+        s.create({
+          id: '1345',
+          name: 'user test',
+        })
+
+        await new Promise<void>((res) => setTimeout(() => res(), 1))
+
+        // assert
+        expect(localDS.read().length).toBe(1)
+      })
+      test('should NOT update local data source if POST returns ERROR', async () => {
+        // arrange
+        const localDS = makeStubLocalDataSource([])
+        const remoteDS = makeStubRemoteDataSource(true)
+        const networkInfo = makeStubNetworkInfo(true)
+
+        const s = makeContactService(localDS, remoteDS, networkInfo)
+
+        // act and assert
+        expect(() =>
+          s.create({
+            id: '1345',
+            name: 'user test',
+          })
+        ).rejects.toThrowError('somethingWentWrong')
+
+	expect(localDS.read().length).toBe(0)
+      })
+    })
+    test('should list contacts', async () => {
+      const localDS = makeStubLocalDataSource()
+      const remoteDS = makeStubRemoteDataSource()
+      const networkInfo = makeStubNetworkInfo()
+
+      const s = makeContactService(localDS, remoteDS, networkInfo)
+
+      s.attach(() => {})
+
+      await new Promise<void>((res) => setTimeout(() => res(), 1))
+
+      expect(localDS.read()).toEqual(expect.arrayContaining(remoteContactList))
+    })
+
+    test('should update local with remote', async () => {
+      // arrange
+      const existingContactList = [
+        { name: 'Lucas', id: '5' },
+        { name: 'Renata', id: '6' },
+      ]
+
+      const localDS = makeStubLocalDataSource(existingContactList)
+      const remoteDS = makeStubRemoteDataSource()
+      const networkInfo = makeStubNetworkInfo()
+
+      const s = makeContactService(localDS, remoteDS, networkInfo)
+
+      // act
+      s.attach(() => {})
+
+      await new Promise<void>((res) => setTimeout(() => res(), 1))
+
+      // assert
+      expect(localDS.read()).toEqual(
+        expect.arrayContaining([...remoteContactList, ...existingContactList])
       )
-    )
-  })
+    })
 
+    test('should update local with remote and no duplicates', async () => {
+      // arrange
+      const existingContactList = [
+        { name: 'Well', id: '1' },
+        { name: 'Renata', id: '40' },
+      ]
+
+      const localDS = makeStubLocalDataSource(existingContactList)
+      const remoteDS = makeStubRemoteDataSource()
+      const networkInfo = makeStubNetworkInfo()
+
+      const s = makeContactService(localDS, remoteDS, networkInfo)
+
+      // act
+      s.attach(() => {})
+
+      await new Promise<void>((res) => setTimeout(() => res(), 1))
+
+      // assert
+      const localDSItemsId = localDS.read().map((item) => item.id)
+      const localDSUniqueItemsId = new Set(localDSItemsId)
+
+      expect(localDSItemsId.length).toBe(localDSUniqueItemsId.size)
+    })
+  })
 })
-
-
-
-
-
