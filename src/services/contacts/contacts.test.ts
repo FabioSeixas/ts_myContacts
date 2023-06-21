@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest'
-import { IContact, INetworkInfo } from './types'
+import { IContact, IEventManager, INetworkInfo } from './types'
 import { makeContactService } from '.'
 
 const makeStubLocalDataSource = (initalData?: IContact[]) => {
@@ -73,6 +73,61 @@ describe('Contacts Service Tests', () => {
     })
   })
   describe('Offline', () => {
+    describe('Observable pattern', () => {
+      test.only('should accept new listeners', async () => {
+        // arrange
+        const localDS = makeStubLocalDataSource()
+        const remoteDS = makeStubRemoteDataSource()
+        const networkInfo = makeStubNetworkInfo(false)
+
+        const makeStubEventManager = (): IEventManager & {
+          listeners: any[]
+        } => {
+          const listeners: any[] = []
+          return {
+            emit(_, __) {
+              return null
+            },
+            removeListener(_, __) {
+              return null
+            },
+            on(_, listener) {
+              listeners.push(listener)
+            },
+            get listeners() {
+              return listeners
+            },
+          }
+        }
+
+        const stubEventManager = makeStubEventManager()
+
+        const s = makeContactService(
+          localDS,
+          remoteDS,
+          networkInfo,
+          stubEventManager
+        )
+
+        let count = 0
+
+        const mockHandler = (data: any[]) => {
+          count++
+        }
+
+        // act
+        s.attach(mockHandler)
+        s.attach(mockHandler)
+        s.attach(mockHandler)
+
+        await new Promise<void>((res) => setTimeout(() => res(), 1))
+
+        // assert
+        console.log(stubEventManager.listeners)
+        console.log(count)
+        // expect(numberOfCalls).toBe(3)
+      })
+    })
     describe('Creation', () => {
       test('should not touch remote source on offline creation', async () => {
         // arrange
@@ -264,7 +319,7 @@ describe('Contacts Service Tests', () => {
           })
         ).rejects.toThrowError('somethingWentWrong')
 
-	expect(localDS.read().length).toBe(0)
+        expect(localDS.read().length).toBe(0)
       })
     })
     test('should list contacts', async () => {

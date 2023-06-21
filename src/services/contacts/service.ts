@@ -35,7 +35,7 @@ export class ContactService implements IContactService {
 
   private listContacts() {
     if (!this.networkInfo.isConnected()) {
-      this.eventManager.emit(EVENT_LIST_CONTACTS, this.getCacheData())
+      this.notifyListeners()
       return
     }
     this.remoteDataSource
@@ -44,18 +44,21 @@ export class ContactService implements IContactService {
         if (networkContacts.length) {
           this.mergeDataSources(networkContacts)
         }
-        this.eventManager.emit(EVENT_LIST_CONTACTS, this.getCacheData())
+        this.notifyListeners()
       })
       .catch((e: Error) => {
         console.log('algo deu errado no GET /contacts')
         console.log(e)
         console.log('Listando contatos salvos em cache.')
-        this.eventManager.emit(EVENT_LIST_CONTACTS, this.getCacheData())
+        this.notifyListeners()
       })
   }
 
-  attach(handler: () => void) {
-    console.log(this.eventManager)
+  private notifyListeners() {
+    this.eventManager.emit(EVENT_LIST_CONTACTS, this.getCacheData())
+  }
+
+  attach(handler: (data: IContact[]) => void) {
     this.eventManager.on('updateContacts', handler)
     this.listContacts()
   }
