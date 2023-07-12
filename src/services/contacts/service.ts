@@ -59,7 +59,7 @@ export class ContactService implements IContactService {
   }
 
   attach(handler: (data: IContact[]) => void) {
-    this.eventManager.on('updateContacts', handler)
+    this.eventManager.on(EVENT_LIST_CONTACTS, handler)
     this.listContacts()
   }
 
@@ -67,16 +67,18 @@ export class ContactService implements IContactService {
     // TODO: id must be created here, not passed inside payload
     if (!this.networkInfo.isConnected()) {
       this.mergeDataSources([newContact])
+      this.notifyListeners()
       return newContact
     }
 
     const result = await this.remoteDataSource.create(newContact)
 
     this.mergeDataSources([result])
+    this.notifyListeners()
     return result
   }
 
-  detach(): void {
-    console.log()
+  detach(handler: (data: IContact[]) => void): void {
+    this.eventManager.removeListener(EVENT_LIST_CONTACTS, handler)
   }
 }

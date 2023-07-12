@@ -2,7 +2,7 @@ import { EventPayload, EventCallback } from '../eventManager/types'
 
 export interface IContactService {
   attach(handler: (data: IContact[]) => void): void
-  detach(): void
+  detach(handler: (data: IContact[]) => void): void
   create(newContact: IContact): Promise<IContact>
 }
 

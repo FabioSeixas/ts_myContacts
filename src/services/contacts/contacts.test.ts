@@ -1,6 +1,8 @@
 import { describe, expect, test, vi } from 'vitest'
-import { IContact, IEventManager, INetworkInfo } from './types'
+import { IContact, INetworkInfo } from './types'
+import { EVENT_LIST_CONTACTS } from './constants'
 import { makeContactService } from '.'
+import { EventManager } from '../eventManager'
 
 const makeStubLocalDataSource = (initalData?: IContact[]) => {
   const source = {
@@ -50,57 +52,15 @@ const makeStubNetworkInfo = (isConnected = true): INetworkInfo => {
 }
 
 describe('Contacts Service Tests', () => {
-  describe('Observable', () => {
-    test('should accept N new listeners', async () => {
-      // arrange
-      // act
-      // assert
-    })
-    test('should notify listeners when update happens', async () => {
-      // arrange
-      // act
-      // assert
-    })
-    test('should detach listeners', async () => {
-      // arrange
-      // act
-      // assert
-    })
-    test('should not notify a detached listener', async () => {
-      // arrange
-      // act
-      // assert
-    })
-  })
   describe('Offline', () => {
     describe('Observable pattern', () => {
-      test.only('should accept new listeners', async () => {
+      test('should not notify a detached listener', async () => {
         // arrange
         const localDS = makeStubLocalDataSource()
         const remoteDS = makeStubRemoteDataSource()
         const networkInfo = makeStubNetworkInfo(false)
 
-        const makeStubEventManager = (): IEventManager & {
-          listeners: any[]
-        } => {
-          const listeners: any[] = []
-          return {
-            emit(_, __) {
-              return null
-            },
-            removeListener(_, __) {
-              return null
-            },
-            on(_, listener) {
-              listeners.push(listener)
-            },
-            get listeners() {
-              return listeners
-            },
-          }
-        }
-
-        const stubEventManager = makeStubEventManager()
+        const stubEventManager = new EventManager()
 
         const s = makeContactService(
           localDS,
@@ -109,10 +69,109 @@ describe('Contacts Service Tests', () => {
           stubEventManager
         )
 
-        let count = 0
+        let contactListOne: any[] = []
+        let contactListTwo: any[] = []
 
-        const mockHandler = (data: any[]) => {
-          count++
+        function mockHandlerOne(data: any[]) {
+          contactListOne = data
+        }
+        function mockHandlerTwo(data: any[]) {
+          contactListTwo = data
+        }
+
+        s.attach(mockHandlerOne)
+        s.attach(mockHandlerTwo)
+
+        // act
+        s.detach(mockHandlerTwo)
+
+        const newContact = { id: '321', name: 'Joao' }
+        s.create(newContact)
+
+        // assert
+        expect(contactListOne[0]).toEqual(newContact)
+        expect(contactListTwo[0]).toBeFalsy()
+        expect(contactListTwo.length).toBe(0)
+      })
+      test('should detach listeners', async () => {
+        // arrange
+        const localDS = makeStubLocalDataSource()
+        const remoteDS = makeStubRemoteDataSource()
+        const networkInfo = makeStubNetworkInfo(false)
+
+        const stubEventManager = new EventManager()
+
+        const s = makeContactService(
+          localDS,
+          remoteDS,
+          networkInfo,
+          stubEventManager
+        )
+
+        function mockHandlerOne(_: any[]) {
+          console.log('')
+        }
+        function mockHandlerTwo(_: any[]) {
+          console.log('')
+        }
+
+        s.attach(mockHandlerOne)
+        s.attach(mockHandlerTwo)
+
+        // act
+        s.detach(mockHandlerTwo)
+
+        // assert
+        expect(stubEventManager.countEventListeners(EVENT_LIST_CONTACTS)).toBe(
+          1
+        )
+      })
+      test('should notify listeners when update happens', async () => {
+        // arrange
+        const localDS = makeStubLocalDataSource()
+        const remoteDS = makeStubRemoteDataSource()
+        const networkInfo = makeStubNetworkInfo(false)
+
+        const stubEventManager = new EventManager()
+
+        const s = makeContactService(
+          localDS,
+          remoteDS,
+          networkInfo,
+          stubEventManager
+        )
+
+        let contactList: any[] = []
+        function mockHandler(data: any[]) {
+          contactList = data
+        }
+
+        s.attach(mockHandler)
+        const newContact = { id: '321', name: 'Joao' }
+
+        // act
+        s.create(newContact)
+
+        // assert
+        expect(contactList[0]).toEqual(newContact)
+      })
+      test('should accept new listeners', async () => {
+        // arrange
+        const localDS = makeStubLocalDataSource()
+        const remoteDS = makeStubRemoteDataSource()
+        const networkInfo = makeStubNetworkInfo(false)
+
+        const stubEventManager = new EventManager()
+
+        const s = makeContactService(
+          localDS,
+          remoteDS,
+          networkInfo,
+          stubEventManager
+        )
+
+        function mockHandler(_: any[]) {
+          console.log('')
         }
 
         // act
@@ -120,12 +179,10 @@ describe('Contacts Service Tests', () => {
         s.attach(mockHandler)
         s.attach(mockHandler)
 
-        await new Promise<void>((res) => setTimeout(() => res(), 1))
-
         // assert
-        console.log(stubEventManager.listeners)
-        console.log(count)
-        // expect(numberOfCalls).toBe(3)
+        expect(stubEventManager.countEventListeners(EVENT_LIST_CONTACTS)).toBe(
+          3
+        )
       })
     })
     describe('Creation', () => {
@@ -236,6 +293,140 @@ describe('Contacts Service Tests', () => {
   })
 
   describe('Online', () => {
+    describe('Observable', () => {
+      test('should not notify a detached listener', async () => {
+        // arrange
+        const localDS = makeStubLocalDataSource()
+        const remoteDS = makeStubRemoteDataSource()
+        const networkInfo = makeStubNetworkInfo()
+
+        const stubEventManager = new EventManager()
+
+        const s = makeContactService(
+          localDS,
+          remoteDS,
+          networkInfo,
+          stubEventManager
+        )
+
+        let contactListOne: any[] = []
+        let contactListTwo: any[] = []
+
+        function mockHandlerOne(data: any[]) {
+          contactListOne = data
+        }
+        function mockHandlerTwo(data: any[]) {
+          contactListTwo = data
+        }
+
+        s.attach(mockHandlerOne)
+        s.attach(mockHandlerTwo)
+
+        // act
+        s.detach(mockHandlerTwo)
+
+        const newContact = { id: '321', name: 'Joao' }
+        s.create(newContact)
+        await new Promise<void>((res) => setTimeout(() => res(), 1))
+
+        // assert
+        expect(contactListOne[0]).toEqual(newContact)
+        expect(contactListTwo[0]).toBeFalsy()
+        expect(contactListTwo.length).toBe(0)
+      })
+      test('should detach listeners', async () => {
+        // arrange
+        const localDS = makeStubLocalDataSource()
+        const remoteDS = makeStubRemoteDataSource()
+        const networkInfo = makeStubNetworkInfo()
+
+        const stubEventManager = new EventManager()
+
+        const s = makeContactService(
+          localDS,
+          remoteDS,
+          networkInfo,
+          stubEventManager
+        )
+
+        function mockHandlerOne(_: any[]) {
+          console.log('')
+        }
+        function mockHandlerTwo(_: any[]) {
+          console.log('')
+        }
+
+        s.attach(mockHandlerOne)
+        s.attach(mockHandlerTwo)
+
+        // act
+        s.detach(mockHandlerTwo)
+
+        // assert
+        expect(stubEventManager.countEventListeners(EVENT_LIST_CONTACTS)).toBe(
+          1
+        )
+      })
+      test('should notify listeners when update happens', async () => {
+        // arrange
+        const localDS = makeStubLocalDataSource()
+        const remoteDS = makeStubRemoteDataSource()
+        const networkInfo = makeStubNetworkInfo()
+
+        const stubEventManager = new EventManager()
+
+        const s = makeContactService(
+          localDS,
+          remoteDS,
+          networkInfo,
+          stubEventManager
+        )
+
+        let contactList: any[] = []
+        function mockHandler(data: any[]) {
+          contactList = data
+        }
+
+        s.attach(mockHandler)
+        const newContact = { id: '321', name: 'Joao' }
+
+        // act
+        s.create(newContact)
+        await new Promise<void>((res) => setTimeout(() => res(), 1))
+
+        // assert
+        expect(contactList[0]).toEqual(newContact)
+      })
+      test('should accept new listeners', async () => {
+        // arrange
+        const localDS = makeStubLocalDataSource()
+        const remoteDS = makeStubRemoteDataSource()
+        const networkInfo = makeStubNetworkInfo()
+
+        const stubEventManager = new EventManager()
+
+        const s = makeContactService(
+          localDS,
+          remoteDS,
+          networkInfo,
+          stubEventManager
+        )
+
+        function mockHandler(_: any[]) {
+          console.log('')
+        }
+
+        // act
+        s.attach(mockHandler)
+        s.attach(mockHandler)
+        s.attach(mockHandler)
+
+        // assert
+        expect(stubEventManager.countEventListeners(EVENT_LIST_CONTACTS)).toBe(
+          3
+        )
+      })
+    })
     describe('Creation', () => {
       test('should POST to remote source', async () => {
         // arrange

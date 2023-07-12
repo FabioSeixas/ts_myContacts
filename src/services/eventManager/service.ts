@@ -40,4 +40,8 @@ export default class EventManager {
 
     this.listeners.set(event, filteredListeners);
   }
+
+  countEventListeners(event: string): number {
+    return this.listeners.get(event)?.length ?? 0
+  }
 }
