@@ -27,21 +27,17 @@ export function ContactList({ service }: { service: IContactService }) {
   return (
     <>
 
-      {!!searchInput && <p> pesquisando por {`${searchInput}`}</p>}
-
       <input
         value={searchInput}
         type="text"
         placeholder="Pesquisa pelo nome..."
         onChange={(e) => setSearchInput(e.target.value)}
       />
-
-      <h1>Header</h1>
+      {!!searchInput && <p> pesquisando por {`${searchInput}`}</p>}
 
       {filteredContacts.map((c) => (
-        <h2 key={c.id} data-testId="contact-item">{c.name}</h2>
+        <h3 key={c.id}>{c.name}</h3>
       ))}
-      <h1>Footer</h1>
     </>
   )
 }

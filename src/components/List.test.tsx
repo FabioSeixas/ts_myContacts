@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
 import { makeContactService } from '../services/contacts'
 
@@ -53,6 +53,11 @@ const makeStubNetworkInfo = (isConnected = true): INetworkInfo => {
 }
 
 describe('App', () => {
+  it('on mount, render a loading without contact list', async () => {})
+  it('After loading, render contact list', async () => {})
+  it('On click remove button, open confirm modal', async () => {})
+  it('On click confirm, remove item', async () => {})
+  it('On click add/edit, send to another page', async () => {})
   it('renders a contact', async () => {
     const s = makeContactService(
       makeStubLocalDataSource(),
@@ -66,7 +71,7 @@ describe('App', () => {
 
     screen.debug()
   })
-  it('filter contact list', async () => {
+  it('filter out contacts that do not match input text', async () => {
     const s = makeContactService(
       makeStubLocalDataSource(),
       makeStubRemoteDataSource(),
@@ -86,20 +91,23 @@ describe('App', () => {
     expect(screen.queryByText('Well')).toBeNull()
     screen.debug()
   })
-  it('filter contact list (2)', async () => {
+  it('filter contact that do match input list', async () => {
     const s = makeContactService(
       makeStubLocalDataSource(),
       makeStubRemoteDataSource(),
       makeStubNetworkInfo()
     )
     render(<ContactList service={s} />)
+    screen.debug()
 
     fireEvent.change(screen.getByRole('textbox'), {
       target: { value: 'Raquel' },
     })
 
+    const tag = await screen.findByRole('heading', { name: 'Raquel' })
     screen.debug()
-    const raquel = (await screen.findByTestId('contact-item')).textContent
-    expect(raquel).toBe('Raquel')
+
+    expect(tag).toBeInTheDocument()
+    expect(tag.tagName.toLowerCase()).toBe("h3")
   })
 })
