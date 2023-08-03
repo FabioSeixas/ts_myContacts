@@ -58,6 +58,7 @@ describe('App', () => {
   it('On click remove button, open confirm modal', async () => {})
   it('On click confirm, remove item', async () => {})
   it('On click add/edit, send to another page', async () => {})
+
   it('renders a contact', async () => {
     const s = makeContactService(
       makeStubLocalDataSource(),
