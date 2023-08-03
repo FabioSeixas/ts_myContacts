@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
 import { makeContactService } from '../services/contacts'
 
@@ -113,16 +113,15 @@ describe('App', () => {
       makeStubNetworkInfo()
     )
     render(<ContactList service={s} />)
-    screen.debug()
+    await waitFor(() => {
+      fireEvent.change(screen.getByRole('textbox'), {
+        target: { value: 'Raquel' },
+      })
 
-    fireEvent.change(screen.getByRole('textbox'), {
-      target: { value: 'Raquel' },
+      const tag = screen.getByRole('heading', { name: 'Raquel' })
+
+      expect(tag).toBeInTheDocument()
+      expect(tag.tagName.toLowerCase()).toBe('h3')
     })
-
-    const tag = await screen.findByRole('heading', { name: 'Raquel' })
-    screen.debug()
-
-    expect(tag).toBeInTheDocument()
-    expect(tag.tagName.toLowerCase()).toBe('h3')
   })
 })
