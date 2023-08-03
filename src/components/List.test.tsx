@@ -52,49 +52,60 @@ const makeStubNetworkInfo = (isConnected = true): INetworkInfo => {
   }
 }
 
+const renderComponent = () => {
+  const s = makeContactService(
+    makeStubLocalDataSource(),
+    makeStubRemoteDataSource(),
+    makeStubNetworkInfo()
+  )
+  return render(<ContactList service={s} />)
+}
+
 describe('App', () => {
   it('on mount, render a loading without contact list', async () => {
-    const s = makeContactService(
-      makeStubLocalDataSource(),
-      makeStubRemoteDataSource(),
-      makeStubNetworkInfo()
-    )
-    render(<ContactList service={s} />)
+    renderComponent()
 
-    screen.debug()
     expect(screen.getByText(/Carregando/)).toBeInTheDocument()
     expect(screen.queryByText(/Pesquisa/)).not.toBeInTheDocument()
     expect(screen.queryByText(/Well/)).not.toBeInTheDocument()
   })
-  // it('After loading, dont render loading', async () => {})
-  // it('After loading, render contact list', async () => {})
+  it('After loading, dont render loading', async () => {
+    renderComponent()
+    await waitFor(() => {
+      expect(screen.queryByText(/Carregando/)).not.toBeInTheDocument()
+    })
+  })
+  it('After loading, render contact list', async () => {
+    renderComponent()
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Pesquisa/)).toBeInTheDocument()
+      expect(screen.getByText(/Well/)).toBeInTheDocument()
+    })
+  })
   // it('On click remove button, open confirm modal', async () => {})
   // it('On click confirm, remove item', async () => {})
   // it('On click add/edit, send to another page', async () => {})
-  // it('Should render a message "not found" when search without results', async () => {})
+  it('Should render a message "not found" when search without results', async () => {
+    renderComponent()
+
+    await waitFor(() => {
+      fireEvent.change(screen.getByRole('textbox'), {
+        target: { value: 'Lucas' },
+      })
+      const tag = screen.queryByRole('heading', { name: 'Lucas' })
+      const notFoundMessageTag = screen.getByText('Nenhum resultado para "Lucas"')
+      expect(tag).not.toBeInTheDocument()
+      expect(notFoundMessageTag).toBeInTheDocument()
+    })
+  })
 
   it('renders a contact', async () => {
-    const s = makeContactService(
-      makeStubLocalDataSource(),
-      makeStubRemoteDataSource(),
-      makeStubNetworkInfo()
-    )
-    render(<ContactList service={s} />)
+    renderComponent()
 
-    screen.debug()
     expect(await screen.findByText('Well')).toBeInTheDocument()
-
-    screen.debug()
   })
   it('filter out contacts that do not match input text', async () => {
-    const s = makeContactService(
-      makeStubLocalDataSource(),
-      makeStubRemoteDataSource(),
-      makeStubNetworkInfo()
-    )
-    render(<ContactList service={s} />)
-
-    screen.debug()
+    renderComponent()
 
     await screen.findByText('Well')
 
@@ -104,20 +115,14 @@ describe('App', () => {
 
     expect(screen.getByText(/pesquisando por Raquel/)).toBeInTheDocument()
     expect(screen.queryByText('Well')).toBeNull()
-    screen.debug()
   })
-  it('filter contact that do match input list', async () => {
-    const s = makeContactService(
-      makeStubLocalDataSource(),
-      makeStubRemoteDataSource(),
-      makeStubNetworkInfo()
-    )
-    render(<ContactList service={s} />)
+  it('filter contact that do match input text', async () => {
+    renderComponent()
+
     await waitFor(() => {
       fireEvent.change(screen.getByRole('textbox'), {
         target: { value: 'Raquel' },
       })
-
       const tag = screen.getByRole('heading', { name: 'Raquel' })
 
       expect(tag).toBeInTheDocument()

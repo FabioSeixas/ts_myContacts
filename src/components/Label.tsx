@@ -33,6 +33,9 @@ export function ContactList({ service }: { service: IContactService }) {
     return <h3>Carregando...</h3>
   }
 
+  const isSearching = !!searchInput
+  const thereAreResults = !!filteredContacts.length
+
   return (
     <>
       <input
@@ -41,7 +44,8 @@ export function ContactList({ service }: { service: IContactService }) {
         placeholder="Pesquisa pelo nome..."
         onChange={(e) => setSearchInput(e.target.value)}
       />
-      {!!searchInput && <p> pesquisando por {`${searchInput}`}</p>}
+      {isSearching && thereAreResults && <p> pesquisando por {`${searchInput}`}</p>}
+      {isSearching && !thereAreResults && <p> Nenhum resultado para "{`${searchInput}`}"</p>}
 
       {filteredContacts.map((c) => (
         <h3 key={c.id}>{c.name}</h3>
@@ -49,3 +53,7 @@ export function ContactList({ service }: { service: IContactService }) {
     </>
   )
 }
+
+
+
+
