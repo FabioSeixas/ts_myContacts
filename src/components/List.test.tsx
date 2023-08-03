@@ -58,6 +58,7 @@ describe('App', () => {
   it('On click remove button, open confirm modal', async () => {})
   it('On click confirm, remove item', async () => {})
   it('On click add/edit, send to another page', async () => {})
+  it('Should render a message "not found" when search without results', async () => {})
 
   it('renders a contact', async () => {
     const s = makeContactService(
