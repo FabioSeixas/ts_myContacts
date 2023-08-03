@@ -12,11 +12,16 @@ export function Label({ children }: { children: React.ReactNode }) {
 }
 
 export function ContactList({ service }: { service: IContactService }) {
+  const [firstLoading, setFirstLoading] = React.useState(true)
+
   const [contacts, setContacts] = React.useState([] as IContact[])
   const [searchInput, setSearchInput] = React.useState('')
 
   React.useEffect(() => {
-    const callbackHandler = (contacts: IContact[]) => setContacts(contacts)
+    const callbackHandler = (contacts: IContact[]) => {
+      setFirstLoading(false)
+      setContacts(contacts)
+    }
     service.attach(callbackHandler)
   }, [])
 
@@ -24,9 +29,12 @@ export function ContactList({ service }: { service: IContactService }) {
     contact.name.toLowerCase().includes(searchInput.toLowerCase())
   )
 
+  if (firstLoading) {
+    return <h3>Carregando...</h3>
+  }
+
   return (
     <>
-
       <input
         value={searchInput}
         type="text"

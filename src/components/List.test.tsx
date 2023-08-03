@@ -53,7 +53,19 @@ const makeStubNetworkInfo = (isConnected = true): INetworkInfo => {
 }
 
 describe('App', () => {
-  it('on mount, render a loading without contact list', async () => {})
+  it.only('on mount, render a loading without contact list', async () => {
+    const s = makeContactService(
+      makeStubLocalDataSource(),
+      makeStubRemoteDataSource(),
+      makeStubNetworkInfo()
+    )
+    render(<ContactList service={s} />)
+
+    screen.debug()
+    expect(screen.getByText(/Carregando/)).toBeInTheDocument()
+    expect(screen.queryByText(/Pesquisa/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Well/)).not.toBeInTheDocument()
+  })
   it('After loading, render contact list', async () => {})
   it('On click remove button, open confirm modal', async () => {})
   it('On click confirm, remove item', async () => {})
@@ -110,6 +122,6 @@ describe('App', () => {
     screen.debug()
 
     expect(tag).toBeInTheDocument()
-    expect(tag.tagName.toLowerCase()).toBe("h3")
+    expect(tag.tagName.toLowerCase()).toBe('h3')
   })
 })
