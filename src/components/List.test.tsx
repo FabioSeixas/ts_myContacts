@@ -53,7 +53,7 @@ const makeStubNetworkInfo = (isConnected = true): INetworkInfo => {
 }
 
 describe('App', () => {
-  it.only('on mount, render a loading without contact list', async () => {
+  it('on mount, render a loading without contact list', async () => {
     const s = makeContactService(
       makeStubLocalDataSource(),
       makeStubRemoteDataSource(),
@@ -66,11 +66,12 @@ describe('App', () => {
     expect(screen.queryByText(/Pesquisa/)).not.toBeInTheDocument()
     expect(screen.queryByText(/Well/)).not.toBeInTheDocument()
   })
-  it('After loading, render contact list', async () => {})
-  it('On click remove button, open confirm modal', async () => {})
-  it('On click confirm, remove item', async () => {})
-  it('On click add/edit, send to another page', async () => {})
-  it('Should render a message "not found" when search without results', async () => {})
+  // it('After loading, dont render loading', async () => {})
+  // it('After loading, render contact list', async () => {})
+  // it('On click remove button, open confirm modal', async () => {})
+  // it('On click confirm, remove item', async () => {})
+  // it('On click add/edit, send to another page', async () => {})
+  // it('Should render a message "not found" when search without results', async () => {})
 
   it('renders a contact', async () => {
     const s = makeContactService(
