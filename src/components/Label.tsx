@@ -1,5 +1,7 @@
 import * as React from 'react'
+import { createPortal } from 'react-dom'
 import { IContactService, IContact } from '../services/contacts/types'
+import TrashIcon from '../assets/trash.svg'
 
 export function Label({ children }: { children: React.ReactNode }) {
   return (
@@ -13,6 +15,8 @@ export function Label({ children }: { children: React.ReactNode }) {
 
 export function ContactList({ service }: { service: IContactService }) {
   const [firstLoading, setFirstLoading] = React.useState(true)
+  const [removeContactModalOpen, setRemoveContactModalOpen] =
+    React.useState(false)
 
   const [contacts, setContacts] = React.useState([] as IContact[])
   const [searchInput, setSearchInput] = React.useState('')
@@ -44,16 +48,31 @@ export function ContactList({ service }: { service: IContactService }) {
         placeholder="Pesquisa pelo nome..."
         onChange={(e) => setSearchInput(e.target.value)}
       />
-      {isSearching && thereAreResults && <p> pesquisando por {`${searchInput}`}</p>}
-      {isSearching && !thereAreResults && <p> Nenhum resultado para "{`${searchInput}`}"</p>}
+      {isSearching && thereAreResults && (
+        <p> pesquisando por {`${searchInput}`}</p>
+      )}
+      {isSearching && !thereAreResults && (
+        <p> Nenhum resultado para "{`${searchInput}`}"</p>
+      )}
 
-      {filteredContacts.map((c) => (
-        <h3 key={c.id}>{c.name}</h3>
-      ))}
+      <ul>
+        {filteredContacts.map((c) => (
+          <li>
+            <h3 key={c.id}>{c.name}</h3>
+            <button aria-label="remove" onClick={() => setRemoveContactModalOpen(true)}>
+              <img src={TrashIcon} />
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {removeContactModalOpen &&
+        createPortal(
+          <div>
+          <p>Deseja remover contato?</p>
+          </div>,
+          document.body
+        )}
     </>
   )
 }
-
-
-
-

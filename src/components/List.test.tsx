@@ -29,16 +29,16 @@ const remoteContactList = [
 
 const makeStubRemoteDataSource = (error?: boolean) => {
   return {
-    create: async function (newContact: { id: string; name: string }) {
+    create: async function(newContact: { id: string; name: string }) {
       if (error) {
         throw new Error('somethingWentWrong')
       }
       return newContact
     },
-    update: async function () {
+    update: async function() {
       return remoteContactList[0]
     },
-    list: async function () {
+    list: async function() {
       return remoteContactList
     },
   }
@@ -46,7 +46,7 @@ const makeStubRemoteDataSource = (error?: boolean) => {
 
 const makeStubNetworkInfo = (isConnected = true): INetworkInfo => {
   return {
-    isConnected: function () {
+    isConnected: function() {
       return isConnected
     },
   }
@@ -82,7 +82,20 @@ describe('App', () => {
       expect(screen.getByText(/Well/)).toBeInTheDocument()
     })
   })
-  // it('On click remove button, open confirm modal', async () => {})
+  it('On click remove button, open confirm modal', async () => {
+    renderComponent()
+
+    await waitFor(() => {
+      const removeButtons = screen.queryAllByRole('button', { name: /remove/i })
+
+      const firstRemoveButton = removeButtons.at(-1)
+      if (firstRemoveButton) {
+        fireEvent.click(firstRemoveButton)
+      }
+
+      expect(screen.getByText(/Deseja remover contato\?/)).toBeInTheDocument()
+    })
+  })
   // it('On click confirm, remove item', async () => {})
   // it('On click add/edit, send to another page', async () => {})
   it('Should render a message "not found" when search without results', async () => {
@@ -93,7 +106,9 @@ describe('App', () => {
         target: { value: 'Lucas' },
       })
       const tag = screen.queryByRole('heading', { name: 'Lucas' })
-      const notFoundMessageTag = screen.getByText('Nenhum resultado para "Lucas"')
+      const notFoundMessageTag = screen.getByText(
+        'Nenhum resultado para "Lucas"'
+      )
       expect(tag).not.toBeInTheDocument()
       expect(notFoundMessageTag).toBeInTheDocument()
     })
