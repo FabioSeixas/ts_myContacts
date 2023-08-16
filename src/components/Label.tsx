@@ -15,8 +15,9 @@ export function Label({ children }: { children: React.ReactNode }) {
 
 export function ContactList({ service }: { service: IContactService }) {
   const [firstLoading, setFirstLoading] = React.useState(true)
-  const [removeContactModalOpen, setRemoveContactModalOpen] =
-    React.useState(false)
+  const [removeContactModalOpen, setRemoveContactModalOpen] = React.useState<
+    null | string
+  >(null)
 
   const [contacts, setContacts] = React.useState([] as IContact[])
   const [searchInput, setSearchInput] = React.useState('')
@@ -56,20 +57,34 @@ export function ContactList({ service }: { service: IContactService }) {
       )}
 
       <ul>
-        {filteredContacts.map((c) => (
+        {filteredContacts.map((contact) => (
           <li>
-            <h3 key={c.id}>{c.name}</h3>
-            <button aria-label="remove" onClick={() => setRemoveContactModalOpen(true)}>
+            <h3 key={contact.id}>{contact.name}</h3>
+            <button
+              aria-label="remove"
+              onClick={() => setRemoveContactModalOpen(contact.id)}
+            >
               <img src={TrashIcon} />
             </button>
           </li>
         ))}
       </ul>
 
-      {removeContactModalOpen &&
+      {Boolean(removeContactModalOpen) &&
         createPortal(
           <div>
-          <p>Deseja remover contato?</p>
+            <p>Deseja remover contato?</p>
+            <button
+              aria-label="remove-confirm"
+              onClick={() => {
+                service.delete?.(removeContactModalOpen)
+                setTimeout(() => {
+                  setRemoveContactModalOpen(null)
+                })
+              }}
+            >
+              Confirmar
+            </button>
           </div>,
           document.body
         )}

@@ -29,16 +29,16 @@ const remoteContactList = [
 
 const makeStubRemoteDataSource = (error?: boolean) => {
   return {
-    create: async function(newContact: { id: string; name: string }) {
+    create: async function (newContact: { id: string; name: string }) {
       if (error) {
         throw new Error('somethingWentWrong')
       }
       return newContact
     },
-    update: async function() {
+    update: async function () {
       return remoteContactList[0]
     },
-    list: async function() {
+    list: async function () {
       return remoteContactList
     },
   }
@@ -46,7 +46,7 @@ const makeStubRemoteDataSource = (error?: boolean) => {
 
 const makeStubNetworkInfo = (isConnected = true): INetworkInfo => {
   return {
-    isConnected: function() {
+    isConnected: function () {
       return isConnected
     },
   }
@@ -78,6 +78,7 @@ describe('App', () => {
   it('After loading, render contact list', async () => {
     renderComponent()
     await waitFor(() => {
+      screen.debug()
       expect(screen.getByPlaceholderText(/Pesquisa/)).toBeInTheDocument()
       expect(screen.getByText(/Well/)).toBeInTheDocument()
     })
@@ -86,6 +87,10 @@ describe('App', () => {
     renderComponent()
 
     await waitFor(() => {
+      expect(
+        screen.queryByText(/Deseja remover contato\?/)
+      ).not.toBeInTheDocument()
+
       const removeButtons = screen.queryAllByRole('button', { name: /remove/i })
 
       const firstRemoveButton = removeButtons.at(-1)
@@ -96,7 +101,29 @@ describe('App', () => {
       expect(screen.getByText(/Deseja remover contato\?/)).toBeInTheDocument()
     })
   })
-  // it('On click confirm, remove item', async () => {})
+  it.only('On click confirm, remove item', async () => {
+    renderComponent()
+
+    await waitFor(() => {
+      const removeButtons = screen.queryAllByRole('button', { name: /remove/i })
+
+      screen.debug()
+      const firstRemoveButton = removeButtons.at(-1)
+      if (firstRemoveButton) {
+        fireEvent.click(firstRemoveButton)
+
+        const modalConfirmButton = screen.queryByRole('button', {
+          name: /remove-confirm/i,
+        })
+
+        if (modalConfirmButton) {
+          fireEvent.click(modalConfirmButton)
+        }
+      }
+      expect(screen.queryByText(/Well/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/Tom/)).toBeInTheDocument()
+    })
+  })
   // it('On click add/edit, send to another page', async () => {})
   it('Should render a message "not found" when search without results', async () => {
     renderComponent()
