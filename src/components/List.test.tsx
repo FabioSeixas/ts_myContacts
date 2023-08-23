@@ -3,7 +3,11 @@ import { describe, it, expect } from 'vitest'
 import { makeContactService } from '../services/contacts'
 
 import { ContactList } from './Label'
-import { IContact, INetworkInfo } from '../services/contacts/types'
+import {
+  IContact,
+  INetworkInfo,
+  IRemoteDataSource,
+} from '../services/contacts/types'
 
 const makeStubLocalDataSource = (initalData?: IContact[]) => {
   const source = {
@@ -27,7 +31,7 @@ const remoteContactList = [
   { name: 'Fabio', id: '4' },
 ]
 
-const makeStubRemoteDataSource = (error?: boolean) => {
+const makeStubRemoteDataSource = (error?: boolean): IRemoteDataSource => {
   return {
     create: async function (newContact: { id: string; name: string }) {
       if (error) {
@@ -40,6 +44,9 @@ const makeStubRemoteDataSource = (error?: boolean) => {
     },
     list: async function () {
       return remoteContactList
+    },
+    remove: async function () {
+      return true
     },
   }
 }
@@ -101,14 +108,13 @@ describe('App', () => {
       expect(screen.getByText(/Deseja remover contato\?/)).toBeInTheDocument()
     })
   })
-  it.only('On click confirm, remove item', async () => {
+  it('On click confirm, remove item', async () => {
     renderComponent()
 
     await waitFor(() => {
       const removeButtons = screen.queryAllByRole('button', { name: /remove/i })
 
-      screen.debug()
-      const firstRemoveButton = removeButtons.at(-1)
+      const firstRemoveButton = removeButtons.at(0)
       if (firstRemoveButton) {
         fireEvent.click(firstRemoveButton)
 
@@ -119,6 +125,7 @@ describe('App', () => {
         if (modalConfirmButton) {
           fireEvent.click(modalConfirmButton)
         }
+        screen.debug()
       }
       expect(screen.queryByText(/Well/)).not.toBeInTheDocument()
       expect(screen.queryByText(/Tom/)).toBeInTheDocument()

@@ -78,6 +78,21 @@ export class ContactService implements IContactService {
     return result
   }
 
+  async remove(contactId: string): Promise<true> {
+    if (this.networkInfo.isConnected()) {
+      await this.remoteDataSource
+        .remove(contactId)
+        .catch((err) => console.error(err))
+    }
+    const contactList = this.localDataSource.read()
+    const updatedContactList = contactList.filter(
+      (contact) => contact.id != contactId
+    )
+    this.localDataSource.save(updatedContactList)
+    this.notifyListeners()
+    return true
+  }
+
   detach(handler: (data: IContact[]) => void): void {
     this.eventManager.removeListener(EVENT_LIST_CONTACTS, handler)
   }

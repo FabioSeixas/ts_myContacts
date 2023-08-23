@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest'
-import { IContact, INetworkInfo } from './types'
+import { IContact, INetworkInfo, IRemoteDataSource } from './types'
 import { EVENT_LIST_CONTACTS } from './constants'
 import { makeContactService } from '.'
 import { EventManager } from '../eventManager'
@@ -26,7 +26,7 @@ const remoteContactList = [
   { name: 'Fabio', id: '4' },
 ]
 
-const makeStubRemoteDataSource = (error?: boolean) => {
+const makeStubRemoteDataSource = (error?: boolean): IRemoteDataSource => {
   return {
     create: async function (newContact: { id: string; name: string }) {
       if (error) {
@@ -39,6 +39,9 @@ const makeStubRemoteDataSource = (error?: boolean) => {
     },
     list: async function () {
       return remoteContactList
+    },
+    remove: async function (_: string) {
+      return true
     },
   }
 }

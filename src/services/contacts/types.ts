@@ -4,6 +4,7 @@ export interface IContactService {
   attach(handler: (data: IContact[]) => void): void
   detach(handler: (data: IContact[]) => void): void
   create(newContact: IContact): Promise<IContact>
+  remove(contactId: string): Promise<true>
 }
 
 export interface IContact {
@@ -23,6 +24,7 @@ export interface IRemoteDataSource {
   list(): Promise<IContact[]>
   create(newContact: IContact): Promise<IContact>
   update(updateContact: IContact): Promise<IContact>
+  remove(contactId: string): Promise<true>
 }
 
 export interface IEventManager {

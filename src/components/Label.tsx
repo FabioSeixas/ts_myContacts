@@ -77,10 +77,9 @@ export function ContactList({ service }: { service: IContactService }) {
             <button
               aria-label="remove-confirm"
               onClick={() => {
-                service.delete?.(removeContactModalOpen)
-                setTimeout(() => {
-                  setRemoveContactModalOpen(null)
-                })
+                service
+                  .remove?.(removeContactModalOpen!)
+                  .then(() => setRemoveContactModalOpen(null))
               }}
             >
               Confirmar
