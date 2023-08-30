@@ -26,10 +26,13 @@ const remoteContactList = [
   { name: 'Fabio', id: '4' },
 ]
 
-const makeStubRemoteDataSource = (error?: boolean): IRemoteDataSource => {
+const makeStubRemoteDataSource = (params?: {
+  errorOnCreate?: boolean
+  emptyList?: boolean
+}): IRemoteDataSource => {
   return {
     create: async function (newContact: { id: string; name: string }) {
-      if (error) {
+      if (params?.errorOnCreate) {
         throw new Error('somethingWentWrong')
       }
       return newContact
@@ -38,6 +41,7 @@ const makeStubRemoteDataSource = (error?: boolean): IRemoteDataSource => {
       return remoteContactList[0]
     },
     list: async function () {
+      if (params?.emptyList) return []
       return remoteContactList
     },
     remove: async function (_: string) {
@@ -430,6 +434,37 @@ describe('Contacts Service Tests', () => {
         )
       })
     })
+    describe('Delete', () => {
+      test('should remove a contact by id', async () => {
+        // arrange
+        const localDS = makeStubLocalDataSource()
+        const remoteDS = makeStubRemoteDataSource()
+        const networkInfo = makeStubNetworkInfo()
+
+        const stubEventManager = new EventManager()
+
+        const s = makeContactService(
+          localDS,
+          remoteDS,
+          networkInfo,
+          stubEventManager
+        )
+
+        await new Promise<void>((res) => setTimeout(() => res()))
+
+        await s.remove('1')
+
+        const shouldBeRemoved = localDS
+          .read()
+          .find((contact) => contact.id == '1')
+        const shouldNotBeRemoved = localDS
+          .read()
+          .find((contact) => contact.id == '2')
+
+        expect(shouldBeRemoved).toBeFalsy()
+        expect(shouldNotBeRemoved).toBeTruthy()
+      })
+    })
     describe('Creation', () => {
       test('should POST to remote source', async () => {
         // arrange
@@ -457,8 +492,8 @@ describe('Contacts Service Tests', () => {
       test('should update local data source if POST returns SUCCESS', async () => {
         // arrange
         const existentDataOnCache = [
-          { name: 'user 1', id: '1' },
-          { name: 'user 2', id: '2' },
+          { name: 'user 1', id: '5' },
+          { name: 'user 2', id: '6' },
         ]
 
         const localDS = makeStubLocalDataSource(existentDataOnCache)
@@ -476,12 +511,12 @@ describe('Contacts Service Tests', () => {
         await new Promise<void>((res) => setTimeout(() => res(), 1))
 
         // assert
-        expect(localDS.read().length).toBe(3)
+        expect(localDS.read().length).toBe(7)
       })
       test('should add new item to local data source even if this last one is empty', async () => {
         // arrange
         const localDS = makeStubLocalDataSource([])
-        const remoteDS = makeStubRemoteDataSource()
+        const remoteDS = makeStubRemoteDataSource({ emptyList: true})
         const networkInfo = makeStubNetworkInfo(true)
 
         const s = makeContactService(localDS, remoteDS, networkInfo)
@@ -500,7 +535,7 @@ describe('Contacts Service Tests', () => {
       test('should NOT update local data source if POST returns ERROR', async () => {
         // arrange
         const localDS = makeStubLocalDataSource([])
-        const remoteDS = makeStubRemoteDataSource(true)
+        const remoteDS = makeStubRemoteDataSource({ errorOnCreate: true })
         const networkInfo = makeStubNetworkInfo(true)
 
         const s = makeContactService(localDS, remoteDS, networkInfo)

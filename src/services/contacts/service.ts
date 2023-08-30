@@ -14,7 +14,9 @@ export class ContactService implements IContactService {
     private remoteDataSource: IRemoteDataSource,
     private eventManager: IEventManager,
     private networkInfo: INetworkInfo
-  ) {}
+  ) {
+    this.listContacts()
+  }
 
   private getCacheData() {
     return this.localDataSource.read()
